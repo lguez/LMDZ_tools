@@ -133,7 +133,6 @@ if __name__ == "__main__":
 
             for projection, extents in fig_list:
                 plt.figure()
-                plt.title(var_name)
                 ax = plt.axes(projection = projection)
                 pcolormesh_return = ax.pcolormesh(long_edge_mesh, lat_edge_mesh,
                                                    my_var, transform = src_crs,
@@ -143,6 +142,8 @@ if __name__ == "__main__":
                              shrink = 0.5)
                 ax.coastlines()
                 ax.gridlines(draw_labels=True)
+                ax.set_title(var_name)
                 plt.suptitle(sys.argv[1])
+                plt.subplots_adjust(top = 0.85, bottom = 0)
 
     # No plt.show() since matplotlib.interactive(True)
