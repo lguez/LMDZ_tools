@@ -61,6 +61,10 @@ def gr_fi_dyn(pfi, longitude, latitude):
                             + pfi.dims[i + 1:], coords = coords)
 
 if __name__ == "__main__":
+    # Note: we do not just simply plot with xarray plot because it
+    # does not plot cells at the poles in projections, and it does not
+    # plot cells at the limit of the colorbar.
+    
     import cartopy.crs as ccrs
     import sys
     import jumble
