@@ -70,6 +70,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2: sys.exit("Required argument: path of input file (a "
                                     "limit or startphy NetCDF file)")
     matplotlib.interactive(True)
+    cmap = cm.autumn
 
     # Whole world:
     b = basemap.Basemap(projection = "robin", lon_0 = 0)
@@ -87,15 +88,16 @@ if __name__ == "__main__":
                         round=True)
     method = b.pcolor
     fig_list.append((b, method))
-    cmap = cm.autumn
 
     with xr.open_dataset(sys.argv[1]) as f:
         longitude, latitude = get_lon_lat(f)
 
+        # Longitude bounds:
         long_edge = jumble.edge(longitude)
         long_edge[0] = -180
         long_edge[- 1] = 180
 
+        # Latitude bounds:
         lat_edge = jumble.edge(latitude)
         lat_edge[0] = 90
         lat_edge[- 1] = - 90
@@ -122,9 +124,11 @@ if __name__ == "__main__":
 
             my_var = gr_fi_dyn(my_var_nc, longitude, latitude)
 
+            # Colorbar levels:
             level_min = my_var.min()
             level_max = my_var.max()
-            levels = ticker.MaxNLocator(nbins = 5).tick_values(level_min, level_max)
+            levels = ticker.MaxNLocator(nbins = 5).tick_values(level_min,
+                                                               level_max)
             norm = colors.BoundaryNorm(levels, cmap.N)
 
             for b, method in fig_list:
@@ -137,3 +141,5 @@ if __name__ == "__main__":
                 b.drawcoastlines()
                 plt.title(var_name)
                 plt.suptitle(sys.argv[1])
+
+    # No plt.show() since matplotlib.interactive(True)
