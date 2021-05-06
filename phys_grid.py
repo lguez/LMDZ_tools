@@ -82,12 +82,12 @@ if __name__ == "__main__":
     fig_list = [(ccrs.Robinson(), extents)]
 
     # Northern hemisphere:
-    extents = (-180, 180, 10, 90)
+    extents = (-180, 180, 50, 90)
     fig_list.append((ccrs.LambertAzimuthalEqualArea(central_latitude = 90),
                      extents))
 
     # Southern hemisphere:
-    extents = (-180, 180, -90, -10)
+    extents = (-180, 180, -90, -50)
     fig_list.append((ccrs.LambertAzimuthalEqualArea(central_latitude = - 90),
                      extents))
 
