@@ -83,11 +83,13 @@ if __name__ == "__main__":
 
     # Northern hemisphere:
     extents = (-180, 180, 10, 90)
-    fig_list.append((ccrs.NorthPolarStereo(), extents))
+    fig_list.append((ccrs.LambertAzimuthalEqualArea(central_latitude = 90),
+                     extents))
 
     # Southern hemisphere:
     extents = (-180, 180, -90, -10)
-    fig_list.append((ccrs.SouthPolarStereo(), extents))
+    fig_list.append((ccrs.LambertAzimuthalEqualArea(central_latitude = - 90),
+                     extents))
 
     with xr.open_dataset(sys.argv[1]) as f:
         longitude, latitude = get_lon_lat(f)
