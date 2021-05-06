@@ -125,8 +125,8 @@ if __name__ == "__main__":
             my_var = gr_fi_dyn(my_var_nc, longitude, latitude)
 
             # Colorbar levels:
-            level_min = my_var.min()
-            level_max = my_var.max()
+            level_min = my_var.values.min()
+            level_max = my_var.values.max()
             levels = ticker.MaxNLocator(nbins = 5).tick_values(level_min,
                                                                level_max)
             norm = colors.BoundaryNorm(levels, cmap.N)
