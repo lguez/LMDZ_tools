@@ -8,9 +8,59 @@ Author: Lionel Guez
 
 """
 
+import xarray as xr
+import numpy as np
+
+def get_lon_lat(f):
+    klon = f.dims["points_physiques"]
+
+    # Longitude:
+    iim = np.argwhere((f.longitude[2:] == f.longitude[1]).values).squeeze()[0] \
+        + 1
+    print("iim = ", iim)
+    longitude = f.longitude.values[1:iim + 2].copy()
+    longitude[- 1] = longitude[0] + 360
+
+    # Latitude:
+    jjm = (klon - 2) // iim + 1
+    print("jjm = ", jjm)
+    latitude = np.empty(jjm + 1)
+    latitude[0] = f.variables["latitude"][0]
+    latitude[1:] = f.variables["latitude"][1::iim]
+    
+    return longitude, latitude
+
+def gr_fi_dyn(pfi, longitude, latitude):
+        i = pfi.dims.index('points_physiques')
+        klon = pfi.points_physiques.size
+        iim = longitude.size - 1
+        jjm = latitude.size - 1
+        
+        v = np.empty(pfi.shape[:i] + (jjm + 1, iim + 1) + pfi.shape[i + 1:])
+
+        # North pole:
+        v[(slice(None),) * i  + (0, slice(None, - 1))] \
+            = pfi.values[(slice(None),) * i  + (0, np.newaxis)]
+
+        # Points other than poles:
+        v[(slice(None),) * i  + (slice(1, jjm), slice(None, - 1))] \
+            = pfi.values[(slice(None),) * i  + (slice(1, klon - 1),)]\
+                    .reshape(pfi.shape[:i] + (jjm - 1, iim))
+
+        # South pole:
+        v[(slice(None),) * i + (jjm, slice(None, - 1))] \
+            = pfi.values[(slice(None),) * i  + (klon - 1, np.newaxis)]
+
+        # Duplicated longitude:
+        v[(slice(None),) * (i + 1) + (- 1,)] \
+            = v[(slice(None),) * (i + 1) + (0,)]
+
+        coords = dict({d: pfi[d] for d in pfi.dims[:i] + pfi.dims[i + 1:]},
+                      latitude = latitude, longitude = longitude)
+        return xr.DataArray(v,  dims = pfi.dims[:i] + ("latitude", "longitude")
+                            + pfi.dims[i + 1:], coords = coords)
+
 if __name__ == "__main__":
-    import xarray as xr
-    import numpy as np
     import sys
     from mpl_toolkits import basemap
     import jumble
@@ -40,21 +90,7 @@ if __name__ == "__main__":
     cmap = cm.autumn
 
     with xr.open_dataset(sys.argv[1]) as f:
-        klon = f.dims["points_physiques"]
-
-        longitude = f.variables["longitude"][:]
-        iim = np.argwhere((f.longitude[2:] == f.longitude[1]).values).squeeze()[0] \
-            + 1
-        print("iim = ", iim)
-        longitude = f.longitude.values[1:iim + 2]
-        longitude[- 1] = longitude[0] + 360
-
-        jjm = (klon - 2) // iim + 1
-        print("jjm = ", jjm)
-
-        latitude = np.empty(jjm + 1)
-        latitude[0] = f.variables["latitude"][0]
-        latitude[1:] = f.variables["latitude"][1::iim]
+        longitude, latitude = get_lon_lat(f)
 
         long_edge = jumble.edge(longitude)
         long_edge[0] = -180
@@ -65,8 +101,6 @@ if __name__ == "__main__":
         lat_edge[- 1] = - 90
 
         long_edge_mesh, lat_edge_mesh = np.meshgrid(long_edge, lat_edge)
-
-        my_var = np.empty((jjm + 1, iim + 1))
 
         while True:
             var_name = input("Name of NetCDF primary variable? ")
@@ -86,13 +120,7 @@ if __name__ == "__main__":
                     l = int(l)
                     my_var_nc = my_var_nc[{dim: l}]
 
-            my_var_nc = my_var_nc.values
-            my_var[0, :- 1]= my_var_nc[0]
-            my_var[1:jjm, :- 1] = my_var_nc[1:klon - 1].reshape(jjm - 1, iim)
-            my_var[jjm, :- 1] = my_var_nc[klon - 1]
-
-            # Duplicated longitude:
-            my_var[:, - 1] = my_var[:, 0]
+            my_var = gr_fi_dyn(my_var_nc, longitude, latitude)
 
             level_min = my_var.min()
             level_max = my_var.max()
