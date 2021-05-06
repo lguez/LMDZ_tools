@@ -61,8 +61,8 @@ def gr_fi_dyn(pfi, longitude, latitude):
                             + pfi.dims[i + 1:], coords = coords)
 
 if __name__ == "__main__":
+    import cartopy.crs as ccrs
     import sys
-    from mpl_toolkits import basemap
     import jumble
     import matplotlib
     from matplotlib import pyplot as plt, colors, cm, ticker
@@ -71,23 +71,19 @@ if __name__ == "__main__":
                                     "limit or startphy NetCDF file)")
     matplotlib.interactive(True)
     cmap = cm.autumn
+    src_crs = ccrs.PlateCarree()
 
     # Whole world:
-    b = basemap.Basemap(projection = "robin", lon_0 = 0)
-    method = b.pcolormesh
-    fig_list = [(b, method)]
+    extents = None
+    fig_list = [(ccrs.Robinson(), extents)]
 
     # Northern hemisphere:
-    b = basemap.Basemap(projection="nplaea", boundinglat = 10, lon_0 = 0, 
-                        round=True)
-    method = b.pcolor
-    fig_list.append((b, method))
+    extents = (-180, 180, 10, 90)
+    fig_list.append((ccrs.NorthPolarStereo(), extents))
 
     # Southern hemisphere:
-    b = basemap.Basemap(projection="splaea", boundinglat = - 10, lon_0 = 0, 
-                        round=True)
-    method = b.pcolor
-    fig_list.append((b, method))
+    extents = (-180, 180, -90, -10)
+    fig_list.append((ccrs.SouthPolarStereo(), extents))
 
     with xr.open_dataset(sys.argv[1]) as f:
         longitude, latitude = get_lon_lat(f)
@@ -131,15 +127,18 @@ if __name__ == "__main__":
                                                                level_max)
             norm = colors.BoundaryNorm(levels, cmap.N)
 
-            for b, method in fig_list:
+            for projection, extents in fig_list:
                 plt.figure()
-                method(long_edge_mesh, lat_edge_mesh, my_var, latlon = True, 
-                       cmap = cmap, norm = norm)
-                b.colorbar()
-                b.drawparallels(range(-90,91,45), labels=[1,0,0,0])
-                b.drawmeridians(range(-180,181,60), labels=(0,0,0,1))
-                b.drawcoastlines()
                 plt.title(var_name)
+                ax = plt.axes(projection = projection)
+                pcolormesh_return = ax.pcolormesh(long_edge_mesh, lat_edge_mesh,
+                                                   my_var, transform = src_crs,
+                                                   cmap = cmap, norm = norm)
+                if extents: ax.set_extent(extents, crs = src_crs)
+                plt.colorbar(pcolormesh_return, orientation = 'horizontal',
+                             shrink = 0.5)
+                ax.coastlines()
+                ax.gridlines(draw_labels=True)
                 plt.suptitle(sys.argv[1])
 
     # No plt.show() since matplotlib.interactive(True)
