@@ -109,7 +109,7 @@ if __name__ == "__main__":
             if len(var_name) == 0 or var_name.isspace(): break
 
             try:
-                my_var_nc = f[var_name]
+                pfi = f[var_name]
             except KeyError:
                 print("Not found")
                 print("Variables are:")
@@ -120,9 +120,9 @@ if __name__ == "__main__":
                 if dim != 'points_physiques':
                     l = input(f"Subscript of {dim} (0-based)? ")
                     l = int(l)
-                    my_var_nc = my_var_nc[{dim: l}]
+                    pfi = pfi[{dim: l}]
 
-            my_var = gr_fi_dyn(my_var_nc, longitude, latitude)
+            my_var = gr_fi_dyn(pfi, longitude, latitude)
 
             # Colorbar levels:
             level_min = my_var.values.min()
