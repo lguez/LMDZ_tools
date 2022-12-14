@@ -16,10 +16,9 @@ set -e
 
 year=2005
 month=03
-IDRIS=y
 module purge
 
-if [[ $IDRIS == y ]]
+if [[ $HOSTNAME == jean-zay* ]]
 then
     ERAI_dir=/gpfsstore/rech/psl/rpsl376/ergon/ERAI/NETCDF/GLOBAL_075/4xdaily
     module load nco
