@@ -13,7 +13,7 @@
 # This script calls the accompanying Python script "lnsp_to_SP.py",
 # which should be in the same directory.
 
-set -xe
+set -e
 
 year=2005
 month=03
@@ -32,6 +32,8 @@ else
     ERAI_dir=/bdd/ERAI/NETCDF/GLOBAL_075/4xdaily
     module load python/3.4-anaconda3
 fi
+
+set -x
 
 for var in u v ta r
 do
