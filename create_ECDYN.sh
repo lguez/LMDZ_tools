@@ -19,6 +19,7 @@ year=2005
 month=03
 
 IDRIS=y
+module purge
 
 if [[ $IDRIS == y ]]
 then
