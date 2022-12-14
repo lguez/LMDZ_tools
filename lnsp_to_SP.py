@@ -20,4 +20,4 @@ with netCDF4.Dataset(sys.argv[1], "r+") as f:
     for my_attr in ["num_GRIB", "level_desc", "dataset", "actual_range", 
                     "cell_methods"]:
         if my_attr in SP.ncattrs():
-            SP.__delattr__(my_attr)
+            delattr(SP, my_attr)
