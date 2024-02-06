@@ -82,9 +82,10 @@ if __name__ == "__main__":
     import argparse
 
     import cartopy.crs as ccrs
-    import jumble
     import matplotlib
     from matplotlib import pyplot as plt, colors, cm, ticker
+
+    import jumble
 
     parser = argparse.ArgumentParser()
     parser.add_argument("input_file", help = "limit or startphy NetCDF file")
