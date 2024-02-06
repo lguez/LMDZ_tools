@@ -88,91 +88,106 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("input_file", help = "limit or startphy NetCDF file")
+    parser.add_argument("--output_file", "-o",
+                        help = "create a new NetCDF file")
     args = parser.parse_args()
-    matplotlib.interactive(True)
-    cmap = cm.autumn
-    src_crs = ccrs.PlateCarree()
 
-    # Whole world:
-    extents = None
-    fig_list = [(ccrs.Robinson(), extents)]
+    if args.output_file:
+        input_ds = xr.open_dataset(args.input_file)
+        output_ds = xr.Dataset()
+        longitude, latitude = get_lon_lat(input_ds)
 
-    # Northern hemisphere:
-    extents = (-180, 180, 50, 90)
-    fig_list.append(
-        (ccrs.LambertAzimuthalEqualArea(central_latitude=90), extents)
-    )
+        for var_name in input_ds:
+            if var_name not in {"longitude", "latitude"}:
+                my_var = gr_fi_dyn(input_ds[var_name], longitude, latitude)
+                output_ds[var_name] = my_var
 
-    # Southern hemisphere:
-    extents = (-180, 180, -90, -50)
-    fig_list.append(
-        (ccrs.LambertAzimuthalEqualArea(central_latitude=-90), extents)
-    )
+        output_ds.to_netcdf(args.output_file)
+    else:
+        matplotlib.interactive(True)
+        cmap = cm.autumn
+        src_crs = ccrs.PlateCarree()
 
-    with xr.open_dataset(args.input_file) as my_dataset:
-        longitude, latitude = get_lon_lat(my_dataset)
+        # Whole world:
+        extents = None
+        fig_list = [(ccrs.Robinson(), extents)]
 
-        # Longitude bounds:
-        long_edge = jumble.edge(longitude)
-        long_edge[0] = -180
-        long_edge[-1] = 180
+        # Northern hemisphere:
+        extents = (-180, 180, 50, 90)
+        fig_list.append(
+            (ccrs.LambertAzimuthalEqualArea(central_latitude=90), extents)
+        )
 
-        # Latitude bounds:
-        lat_edge = jumble.edge(latitude)
-        lat_edge[0] = 90
-        lat_edge[-1] = -90
+        # Southern hemisphere:
+        extents = (-180, 180, -90, -50)
+        fig_list.append(
+            (ccrs.LambertAzimuthalEqualArea(central_latitude=-90), extents)
+        )
 
-        long_edge_mesh, lat_edge_mesh = np.meshgrid(long_edge, lat_edge)
+        with xr.open_dataset(args.input_file) as my_dataset:
+            longitude, latitude = get_lon_lat(my_dataset)
 
-        while True:
-            var_name = input("Name of NetCDF primary variable? ")
-            if len(var_name) == 0 or var_name.isspace():
-                break
+            # Longitude bounds:
+            long_edge = jumble.edge(longitude)
+            long_edge[0] = -180
+            long_edge[-1] = 180
 
-            try:
-                pfi = my_dataset[var_name]
-            except KeyError:
-                print("Not found")
-                print("Variables are:")
-                print(list(my_dataset.variables))
-                continue
+            # Latitude bounds:
+            lat_edge = jumble.edge(latitude)
+            lat_edge[0] = 90
+            lat_edge[-1] = -90
 
-            for dim in my_dataset[var_name].dims:
-                if dim != "points_physiques":
-                    l = input(f"Subscript of {dim} (0-based)? ")
-                    l = int(l)
-                    pfi = pfi[{dim: l}]
+            long_edge_mesh, lat_edge_mesh = np.meshgrid(long_edge, lat_edge)
 
-            my_var = gr_fi_dyn(pfi, longitude, latitude)
+            while True:
+                var_name = input("Name of NetCDF primary variable? ")
+                if len(var_name) == 0 or var_name.isspace():
+                    break
 
-            # Colorbar levels:
-            level_min = my_var.values.min()
-            level_max = my_var.values.max()
-            levels = ticker.MaxNLocator(nbins=5).tick_values(
-                level_min, level_max
-            )
-            norm = colors.BoundaryNorm(levels, cmap.N)
+                try:
+                    pfi = my_dataset[var_name]
+                except KeyError:
+                    print("Not found")
+                    print("Variables are:")
+                    print(list(my_dataset.variables))
+                    continue
 
-            for projection, extents in fig_list:
-                plt.figure()
-                ax = plt.axes(projection=projection)
-                pcolormesh_return = ax.pcolormesh(
-                    long_edge_mesh,
-                    lat_edge_mesh,
-                    my_var,
-                    transform=src_crs,
-                    cmap=cmap,
-                    norm=norm,
+                for dim in my_dataset[var_name].dims:
+                    if dim != "points_physiques":
+                        l = input(f"Subscript of {dim} (0-based)? ")
+                        l = int(l)
+                        pfi = pfi[{dim: l}]
+
+                my_var = gr_fi_dyn(pfi, longitude, latitude)
+
+                # Colorbar levels:
+                level_min = my_var.values.min()
+                level_max = my_var.values.max()
+                levels = ticker.MaxNLocator(nbins=5).tick_values(
+                    level_min, level_max
                 )
-                if extents:
-                    ax.set_extent(extents, crs=src_crs)
-                plt.colorbar(
-                    pcolormesh_return, orientation="horizontal", shrink=0.5
-                )
-                ax.coastlines()
-                ax.gridlines(draw_labels=True)
-                ax.set_title(var_name)
-                plt.suptitle(args.input_file)
-                plt.subplots_adjust(top=0.85, bottom=0)
+                norm = colors.BoundaryNorm(levels, cmap.N)
 
-    # No plt.show() since matplotlib.interactive(True)
+                for projection, extents in fig_list:
+                    plt.figure()
+                    ax = plt.axes(projection=projection)
+                    pcolormesh_return = ax.pcolormesh(
+                        long_edge_mesh,
+                        lat_edge_mesh,
+                        my_var,
+                        transform=src_crs,
+                        cmap=cmap,
+                        norm=norm,
+                    )
+                    if extents:
+                        ax.set_extent(extents, crs=src_crs)
+                    plt.colorbar(
+                        pcolormesh_return, orientation="horizontal", shrink=0.5
+                    )
+                    ax.coastlines()
+                    ax.gridlines(draw_labels=True)
+                    ax.set_title(var_name)
+                    plt.suptitle(args.input_file)
+                    plt.subplots_adjust(top=0.85, bottom=0)
+
+        # No plt.show() since matplotlib.interactive(True)
