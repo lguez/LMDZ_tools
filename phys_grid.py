@@ -11,22 +11,22 @@ Author: Lionel Guez
 import xarray as xr
 import numpy as np
 
-def get_lon_lat(f):
-    klon = f.dims["points_physiques"]
+def get_lon_lat(my_dataset):
+    klon = my_dataset.dims["points_physiques"]
 
     # Longitude:
-    iim = np.argwhere((f.longitude[2:] == f.longitude[1]).values).squeeze()[0] \
+    iim = np.argwhere((my_dataset.longitude[2:] == my_dataset.longitude[1]).values).squeeze()[0] \
         + 1
     print("iim = ", iim)
-    longitude = f.longitude.values[1:iim + 2].copy()
+    longitude = my_dataset.longitude.values[1:iim + 2].copy()
     longitude[- 1] = longitude[0] + 360
 
     # Latitude:
     jjm = (klon - 2) // iim + 1
     print("jjm = ", jjm)
     latitude = np.empty(jjm + 1)
-    latitude[0] = f.variables["latitude"][0]
-    latitude[1:] = f.variables["latitude"][1::iim]
+    latitude[0] = my_dataset.variables["latitude"][0]
+    latitude[1:] = my_dataset.variables["latitude"][1::iim]
     
     return longitude, latitude
 
@@ -92,8 +92,8 @@ if __name__ == "__main__":
     fig_list.append((ccrs.LambertAzimuthalEqualArea(central_latitude = - 90),
                      extents))
 
-    with xr.open_dataset(sys.argv[1]) as f:
-        longitude, latitude = get_lon_lat(f)
+    with xr.open_dataset(sys.argv[1]) as my_dataset:
+        longitude, latitude = get_lon_lat(my_dataset)
 
         # Longitude bounds:
         long_edge = jumble.edge(longitude)
@@ -112,14 +112,14 @@ if __name__ == "__main__":
             if len(var_name) == 0 or var_name.isspace(): break
 
             try:
-                pfi = f[var_name]
+                pfi = my_dataset[var_name]
             except KeyError:
                 print("Not found")
                 print("Variables are:")
-                print(list(f.variables))
+                print(list(my_dataset.variables))
                 continue
 
-            for dim in f[var_name].dims:
+            for dim in my_dataset[var_name].dims:
                 if dim != 'points_physiques':
                     l = input(f"Subscript of {dim} (0-based)? ")
                     l = int(l)
