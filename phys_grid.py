@@ -65,8 +65,9 @@ if __name__ == "__main__":
     # plot cells at the poles in projections, and it does not plot
     # cells at the limit of the colorbar.
     
-    import cartopy.crs as ccrs
     import sys
+
+    import cartopy.crs as ccrs
     import jumble
     import matplotlib
     from matplotlib import pyplot as plt, colors, cm, ticker
