@@ -79,18 +79,16 @@ if __name__ == "__main__":
     # plot cells at the poles in projections, and it does not plot
     # cells at the limit of the colorbar.
 
-    import sys
+    import argparse
 
     import cartopy.crs as ccrs
     import jumble
     import matplotlib
     from matplotlib import pyplot as plt, colors, cm, ticker
 
-    if len(sys.argv) != 2:
-        sys.exit(
-            "Required argument: path of input file (a "
-            "limit or startphy NetCDF file)"
-        )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_file", help = "limit or startphy NetCDF file")
+    args = parser.parse_args()
     matplotlib.interactive(True)
     cmap = cm.autumn
     src_crs = ccrs.PlateCarree()
@@ -111,7 +109,7 @@ if __name__ == "__main__":
         (ccrs.LambertAzimuthalEqualArea(central_latitude=-90), extents)
     )
 
-    with xr.open_dataset(sys.argv[1]) as my_dataset:
+    with xr.open_dataset(args.input_file) as my_dataset:
         longitude, latitude = get_lon_lat(my_dataset)
 
         # Longitude bounds:
@@ -174,7 +172,7 @@ if __name__ == "__main__":
                 ax.coastlines()
                 ax.gridlines(draw_labels=True)
                 ax.set_title(var_name)
-                plt.suptitle(sys.argv[1])
+                plt.suptitle(args.input_file)
                 plt.subplots_adjust(top=0.85, bottom=0)
 
     # No plt.show() since matplotlib.interactive(True)
