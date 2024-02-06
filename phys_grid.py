@@ -11,15 +11,20 @@ Author: Lionel Guez
 import xarray as xr
 import numpy as np
 
+
 def get_lon_lat(my_dataset):
     klon = my_dataset.dims["points_physiques"]
 
     # Longitude:
-    iim = np.argwhere((my_dataset.longitude[2:] == my_dataset.longitude[1]).values).squeeze()[0] \
+    iim = (
+        np.argwhere(
+            (my_dataset.longitude[2:] == my_dataset.longitude[1]).values
+        ).squeeze()[0]
         + 1
+    )
     print("iim = ", iim)
-    longitude = my_dataset.longitude.values[1:iim + 2].copy()
-    longitude[- 1] = longitude[0] + 360
+    longitude = my_dataset.longitude.values[1 : iim + 2].copy()
+    longitude[-1] = longitude[0] + 360
 
     # Latitude:
     jjm = (klon - 2) // iim + 1
@@ -27,44 +32,53 @@ def get_lon_lat(my_dataset):
     latitude = np.empty(jjm + 1)
     latitude[0] = my_dataset.variables["latitude"][0]
     latitude[1:] = my_dataset.variables["latitude"][1::iim]
-    
+
     return longitude, latitude
 
+
 def gr_fi_dyn(pfi, longitude, latitude):
-        i = pfi.dims.index('points_physiques')
-        klon = pfi.points_physiques.size
-        iim = longitude.size - 1
-        jjm = latitude.size - 1
-        
-        v = np.empty(pfi.shape[:i] + (jjm + 1, iim + 1) + pfi.shape[i + 1:])
+    i = pfi.dims.index("points_physiques")
+    klon = pfi.points_physiques.size
+    iim = longitude.size - 1
+    jjm = latitude.size - 1
 
-        # North pole:
-        v[(slice(None),) * i  + (0, slice(None, - 1))] \
-            = pfi.values[(slice(None),) * i  + (0, np.newaxis)]
+    v = np.empty(pfi.shape[:i] + (jjm + 1, iim + 1) + pfi.shape[i + 1 :])
 
-        # Points other than poles:
-        v[(slice(None),) * i  + (slice(1, jjm), slice(None, - 1))] \
-            = pfi.values[(slice(None),) * i  + (slice(1, klon - 1),)]\
-                    .reshape(pfi.shape[:i] + (jjm - 1, iim))
+    # North pole:
+    v[(slice(None),) * i + (0, slice(None, -1))] = pfi.values[
+        (slice(None),) * i + (0, np.newaxis)
+    ]
 
-        # South pole:
-        v[(slice(None),) * i + (jjm, slice(None, - 1))] \
-            = pfi.values[(slice(None),) * i  + (klon - 1, np.newaxis)]
+    # Points other than poles:
+    v[(slice(None),) * i + (slice(1, jjm), slice(None, -1))] = pfi.values[
+        (slice(None),) * i + (slice(1, klon - 1),)
+    ].reshape(pfi.shape[:i] + (jjm - 1, iim))
 
-        # Duplicated longitude:
-        v[(slice(None),) * (i + 1) + (- 1,)] \
-            = v[(slice(None),) * (i + 1) + (0,)]
+    # South pole:
+    v[(slice(None),) * i + (jjm, slice(None, -1))] = pfi.values[
+        (slice(None),) * i + (klon - 1, np.newaxis)
+    ]
 
-        coords = dict({d: pfi[d] for d in pfi.dims[:i] + pfi.dims[i + 1:]},
-                      latitude = latitude, longitude = longitude)
-        return xr.DataArray(v,  dims = pfi.dims[:i] + ("latitude", "longitude")
-                            + pfi.dims[i + 1:], coords = coords)
+    # Duplicated longitude:
+    v[(slice(None),) * (i + 1) + (-1,)] = v[(slice(None),) * (i + 1) + (0,)]
+
+    coords = dict(
+        {d: pfi[d] for d in pfi.dims[:i] + pfi.dims[i + 1 :]},
+        latitude=latitude,
+        longitude=longitude,
+    )
+    return xr.DataArray(
+        v,
+        dims=pfi.dims[:i] + ("latitude", "longitude") + pfi.dims[i + 1 :],
+        coords=coords,
+    )
+
 
 if __name__ == "__main__":
     # Note: we do not simply plot with xarray plot because it does not
     # plot cells at the poles in projections, and it does not plot
     # cells at the limit of the colorbar.
-    
+
     import sys
 
     import cartopy.crs as ccrs
@@ -72,8 +86,11 @@ if __name__ == "__main__":
     import matplotlib
     from matplotlib import pyplot as plt, colors, cm, ticker
 
-    if len(sys.argv) != 2: sys.exit("Required argument: path of input file (a "
-                                    "limit or startphy NetCDF file)")
+    if len(sys.argv) != 2:
+        sys.exit(
+            "Required argument: path of input file (a "
+            "limit or startphy NetCDF file)"
+        )
     matplotlib.interactive(True)
     cmap = cm.autumn
     src_crs = ccrs.PlateCarree()
@@ -84,13 +101,15 @@ if __name__ == "__main__":
 
     # Northern hemisphere:
     extents = (-180, 180, 50, 90)
-    fig_list.append((ccrs.LambertAzimuthalEqualArea(central_latitude = 90),
-                     extents))
+    fig_list.append(
+        (ccrs.LambertAzimuthalEqualArea(central_latitude=90), extents)
+    )
 
     # Southern hemisphere:
     extents = (-180, 180, -90, -50)
-    fig_list.append((ccrs.LambertAzimuthalEqualArea(central_latitude = - 90),
-                     extents))
+    fig_list.append(
+        (ccrs.LambertAzimuthalEqualArea(central_latitude=-90), extents)
+    )
 
     with xr.open_dataset(sys.argv[1]) as my_dataset:
         longitude, latitude = get_lon_lat(my_dataset)
@@ -98,18 +117,19 @@ if __name__ == "__main__":
         # Longitude bounds:
         long_edge = jumble.edge(longitude)
         long_edge[0] = -180
-        long_edge[- 1] = 180
+        long_edge[-1] = 180
 
         # Latitude bounds:
         lat_edge = jumble.edge(latitude)
         lat_edge[0] = 90
-        lat_edge[- 1] = - 90
+        lat_edge[-1] = -90
 
         long_edge_mesh, lat_edge_mesh = np.meshgrid(long_edge, lat_edge)
 
         while True:
             var_name = input("Name of NetCDF primary variable? ")
-            if len(var_name) == 0 or var_name.isspace(): break
+            if len(var_name) == 0 or var_name.isspace():
+                break
 
             try:
                 pfi = my_dataset[var_name]
@@ -120,7 +140,7 @@ if __name__ == "__main__":
                 continue
 
             for dim in my_dataset[var_name].dims:
-                if dim != 'points_physiques':
+                if dim != "points_physiques":
                     l = input(f"Subscript of {dim} (0-based)? ")
                     l = int(l)
                     pfi = pfi[{dim: l}]
@@ -130,23 +150,31 @@ if __name__ == "__main__":
             # Colorbar levels:
             level_min = my_var.values.min()
             level_max = my_var.values.max()
-            levels = ticker.MaxNLocator(nbins = 5).tick_values(level_min,
-                                                               level_max)
+            levels = ticker.MaxNLocator(nbins=5).tick_values(
+                level_min, level_max
+            )
             norm = colors.BoundaryNorm(levels, cmap.N)
 
             for projection, extents in fig_list:
                 plt.figure()
-                ax = plt.axes(projection = projection)
-                pcolormesh_return = ax.pcolormesh(long_edge_mesh, lat_edge_mesh,
-                                                   my_var, transform = src_crs,
-                                                   cmap = cmap, norm = norm)
-                if extents: ax.set_extent(extents, crs = src_crs)
-                plt.colorbar(pcolormesh_return, orientation = 'horizontal',
-                             shrink = 0.5)
+                ax = plt.axes(projection=projection)
+                pcolormesh_return = ax.pcolormesh(
+                    long_edge_mesh,
+                    lat_edge_mesh,
+                    my_var,
+                    transform=src_crs,
+                    cmap=cmap,
+                    norm=norm,
+                )
+                if extents:
+                    ax.set_extent(extents, crs=src_crs)
+                plt.colorbar(
+                    pcolormesh_return, orientation="horizontal", shrink=0.5
+                )
                 ax.coastlines()
                 ax.gridlines(draw_labels=True)
                 ax.set_title(var_name)
                 plt.suptitle(sys.argv[1])
-                plt.subplots_adjust(top = 0.85, bottom = 0)
+                plt.subplots_adjust(top=0.85, bottom=0)
 
     # No plt.show() since matplotlib.interactive(True)
