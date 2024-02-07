@@ -12,6 +12,23 @@ import xarray as xr
 import numpy as np
 
 
+def convert_2_indices(i, iim):
+    """Convert from single index i between 1 and klon to double index:
+    longitude index and latitude index.
+
+    """
+
+    if i == 1:
+        i_lon = 1
+        i_lat = 1
+    else:
+        assert i >= 2
+        i_lat, i_lon = divmod(i - 2, iim)
+        i_lon += 1
+        i_lat += 2
+
+    return i_lon, i_lat
+
 def get_lon_lat(my_dataset):
     klon = my_dataset.dims["points_physiques"]
 
